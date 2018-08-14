@@ -16,8 +16,8 @@ public class Application {
     private static final String ANOTHER_BRANCH_NAME = "fake_branch";
     private static final String TEST_BRANCH_NAME = "test_branch";
 
-    private static final String GIT_USERNAME = "Grelotine";
-    private static final String GIT_PASS = "6r1j2q4b2o";
+    private static final String GIT_USERNAME = "AnotherGitCommit4";
+    private static final String GIT_PASS = "6r1j2q4b";
 
     /* Attributes for the Test Case to be published to Git. */
     private static final String TEST_CASE_NAME = "extinction";

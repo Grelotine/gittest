@@ -1,7 +1,5 @@
 package org.squashtest.tf.gittest.controller;
 
-import org.squashtest.tf.gittest.domain.GitProjectSettings;
-import org.squashtest.tf.gittest.domain.TestCaseDto;
 import org.squashtest.tf.gittest.service.SourceCodeManagementService;
 
 public class SourceCodeManagementController {

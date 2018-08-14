@@ -10,6 +10,7 @@ import org.eclipse.jgit.lib.BranchTrackingStatus;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryCache;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.util.FS;
 import org.slf4j.Logger;
@@ -42,7 +43,6 @@ public class GitManagementHelper {
                     "Make sure you have all the permissions with the given Credentials.";
 
     private FileRepository localRepository;
-    private FileRepository remoteRepository;
 
     private Git git;
 
@@ -112,6 +112,7 @@ public class GitManagementHelper {
             LOGGER.error(CHECKOUT_BRANCH_EXCEPTION + testBranchNameParam, ex);
         }
     }
+
     /**
      * Pulls modifications from remote reposiory.
      */
@@ -270,6 +271,21 @@ public class GitManagementHelper {
         }
         // 2.1.2 - Yep -> Switch to the Branch !
         switchBranch(testBranchNameParam);
+    }
+
+    public void closeResource() {
+        git.close();
+    }
+
+    /* Get all the commits on the local Branch. */
+    public Iterable<RevCommit> log() {
+        Iterable<RevCommit> commits = null;
+        try {
+            commits = git.log().call();
+        } catch(GitAPIException ex) {
+            LOGGER.error("Error while listing all the commits.", ex);
+        }
+        return commits;
     }
 
     /** This method tells if the given Git Branch exists among the given List.
