@@ -8,15 +8,15 @@ public class SourceCodeManagementController {
 
 
     /** Only managing Basic Authentication yet. */
-    public void publishTestCaseToGit(String localRepositoryPath, String remoteRepositoryPath,
-                                     String testBranchName, boolean createBranchIfNotExist,
+    public void publishTestCaseToGit(String localRepositoryPath, String remoteRepositoryUrl,
+                                     String workingBranchName, boolean createBranchIfNotExist,
                                      String featureFolderRelativePath,
                                      String testCaseName, String script,
                                      String username, String password) {
 
         scmService.publishTestCaseToGitOnGivenBranch(
-                localRepositoryPath, remoteRepositoryPath,
-                testBranchName, createBranchIfNotExist,
+                localRepositoryPath, remoteRepositoryUrl,
+                workingBranchName, createBranchIfNotExist,
                 featureFolderRelativePath, testCaseName, script,
                 username, password);
     }

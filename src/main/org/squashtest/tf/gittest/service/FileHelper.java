@@ -29,12 +29,23 @@ public class FileHelper {
         String fileRelativePath = buildRelativePath(featureFolderRelativePath, testCaseName);
         String fileAbsolutePath = buildAbsolutePath(localRepositoryPath, fileRelativePath);
         Path filePath = Paths.get(fileAbsolutePath);
+        LOGGER.info("Writing in file " + fileAbsolutePath);
         try {
             Files.write(filePath, lines, Charset.forName("UTF8"));
         } catch(IOException ioe) {
             LOGGER.error("Error while writing the file with path " + fileAbsolutePath, ioe);
         }
         return fileRelativePath;
+    }
+
+    /**
+     * Tells if a file is the descendant of a folder.
+     * @param filePath
+     * @param folderPath
+     * @return
+     */
+    public static boolean isFileInFolder(String filePath, String folderPath) {
+        return filePath.startsWith(folderPath);
     }
 
     private static String buildRelativePath(String folderRelativePath, String testCaseName) {
