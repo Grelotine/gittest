@@ -29,6 +29,18 @@ import java.util.List;
 
 /**
  * This class helps to use JGit plugin and offers the commonly used Commands.
+ *
+ * [Synchronization]: multiple Threads will run this class simultaneously.
+ * However, the Index of the .git folder is not accessible simultaneously.
+ * Therefore all the methods that access the Index of the .git folder will lock the whole class.
+ * The Git methods concerned are : 'add', 'commit'.
+ *
+ * The Push command is concerned because there's a risk of push conflicts where one or more Push commands
+ * can be skipped (letting commits unpushed).
+ *
+ * The Service that will use this Helper will have to Lock the class during all the process Add-Commit-Push
+ * One solution could be to create a method integrating Add, Commit and Push and then synchronize it
+ * since these two methods are not used separately in the plugin.
  * */
 public class GitManagementHelper {
 
@@ -57,8 +69,13 @@ public class GitManagementHelper {
 
     private Git git;
 
-    public  GitManagementHelper(String localRepositoryPathParam) {
-        localRepository = findLocalRepositoryOrCreateIt(localRepositoryPathParam);
+    public GitManagementHelper(String localRepositoryPathParam, boolean initRepoIfNeeded) {
+        localRepository = findLocalRepositoryOrCreateIt(localRepositoryPathParam, initRepoIfNeeded);
+        git = new Git(localRepository);
+    }
+
+    public GitManagementHelper(String localRepositoryPathParam) {
+        localRepository = findLocalRepositoryOrCreateIt(localRepositoryPathParam, false);
         git = new Git(localRepository);
     }
 
@@ -189,39 +206,39 @@ public class GitManagementHelper {
      * @param fileRelativePath The path to the file to add.
      */
     public void addFileToIndex(String fileRelativePath) {
-        try {
-            LOGGER.info("Adding file '" + fileRelativePath + "' to the index.");
-            git.add().addFilepattern(fileRelativePath).call();
-        } catch(GitAPIException ex) {
-            LOGGER.error(ADD_ERROR_MESSAGE, ex);
-        }
+            try {
+                LOGGER.info("Adding file '" + fileRelativePath + "' to the index.");
+                git.add().addFilepattern(fileRelativePath).call();
+            } catch (GitAPIException ex) {
+                LOGGER.error(ADD_ERROR_MESSAGE, ex);
+            }
     }
 
     public void addFilesToIndex(List<String> filesRelativePaths) {
-        try {
-            for(String filePath : filesRelativePaths) {
-                LOGGER.info("Adding file '" + filePath + "' to the index.");
-                git.add().addFilepattern(filePath).call();
+            try {
+                for (String filePath : filesRelativePaths) {
+                    LOGGER.info("Adding file '" + filePath + "' to the index.");
+                    git.add().addFilepattern(filePath).call();
+                }
+            } catch (GitAPIException ex) {
+                LOGGER.error(ADD_ERROR_MESSAGE, ex);
             }
-        } catch(GitAPIException ex) {
-            LOGGER.error(ADD_ERROR_MESSAGE, ex);
-        }
     }
 
     /** Commits the Git Index.
      * @param committerNameParam The name of the committer.
      * @param commitMessageParam The message of the commit. */
     public void commit(String committerNameParam, String commitMessageParam) {
-        try {
-            LOGGER.info("Committing with author '" + committerNameParam + "' and message '" + commitMessageParam + "'.");
-            if(!diffInIndex().isEmpty()) {
-                git.commit().setCommitter(committerNameParam, "").setMessage(commitMessageParam).call();
-            } else {
-                LOGGER.info("The Commit was aborted because there are no modifications in the Index. ");
+            try {
+                LOGGER.info("Committing with author '" + committerNameParam + "' and message '" + commitMessageParam + "'.");
+                if (!diffInIndex().isEmpty()) {
+                    git.commit().setCommitter(committerNameParam, "").setMessage(commitMessageParam).call();
+                } else {
+                    LOGGER.info("The Commit was aborted because there are no modifications in the Index. ");
+                }
+            } catch (GitAPIException ex) {
+                LOGGER.error("Error during commit with commiter" + committerNameParam + " and message " + commitMessageParam, ex);
             }
-        } catch(GitAPIException ex) {
-            LOGGER.error("Error during commit with commiter" + committerNameParam + " and message " + commitMessageParam, ex);
-        }
     }
 
     /** Pushes the unpushed Git commits.
@@ -231,6 +248,7 @@ public class GitManagementHelper {
         try {
             LOGGER.info("Pushing commit with username '" + username + "'.");
             git.push().setCredentialsProvider(new UsernamePasswordCredentialsProvider(username, password)).call();
+            LOGGER.info("Successfully pushed commit with username '" + username + "'.");
         } catch(TransportException tex) {
             LOGGER.error("TransportException: \n" +
                     PUSH_ERROR_MESSAGE_1 + username + "\n" +
@@ -248,7 +266,7 @@ public class GitManagementHelper {
 
     /**
      * Check first if the local branch is not behind the remote.
-     * Check then that there is commits to Push.
+     * Check then that there are commits to Push.
      * If the two assertions above are true, push the last commits.
      * @param username
      * @param password
@@ -274,16 +292,21 @@ public class GitManagementHelper {
      * @param localRepositoryPath
      * @return
      */
-    private FileRepository findLocalRepositoryOrCreateIt(String localRepositoryPath) {
+    private FileRepository findLocalRepositoryOrCreateIt(String localRepositoryPath, boolean initRepoIfNeeded) {
         File folder = new File(localRepositoryPath);
         // 1 - Does the folder exist ?
         if(!FileHelper.isFileExist(localRepositoryPath)) {
             throw new NoSuchFolderException(localRepositoryPath);
         }
-        // 2 - Is it a a real Git Repository ?
+        // 2 - Isn't it a a real Git Repository ?
         if(!RepositoryCache.FileKey.isGitRepository(folder, FS.DETECTED)) {
-            LOGGER.error(NOT_GIT_REPOSITORY_ERROR_MESSAGE + localRepositoryPath);
-            throw new NotGitRepositoryException(localRepositoryPath);
+            if(initRepoIfNeeded) {
+                // Initialize it if needed and permitted
+                safeInitRepository(folder);
+            } else {
+                LOGGER.error(NOT_GIT_REPOSITORY_ERROR_MESSAGE + localRepositoryPath);
+                throw new NotGitRepositoryException(localRepositoryPath);
+            }
         }
         LOGGER.info("Repository on path '" + localRepositoryPath + "' has been successfully identified.");
         FileRepository localRepository = null;
