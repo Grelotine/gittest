@@ -46,6 +46,7 @@ public class GitManagementHelper {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(GitManagementHelper.class);
 
+    // TODO: Fichiers de LANG
     private static final String NOT_GIT_REPOSITORY_ERROR_MESSAGE = "The given Repository is not a Git Repository: ";
     private static final String INITIALIZING_REPOSITORY_ERROR_MESSAGE = "Error while initializing the Git Repository: ";
     private static final String RESOLVING_HEAD_ERROR_MESSAGE = "Error while resolving HEAD reference.";
@@ -190,6 +191,7 @@ public class GitManagementHelper {
 
         }
     }
+
     /**
      * Pulls modifications from remote reposiory.
      */
